@@ -1,0 +1,8 @@
+streamlit
+streamlit-webrtc
+tensorflow
+opencv-python
+pillow
+av
+pillow
+mtcnn
