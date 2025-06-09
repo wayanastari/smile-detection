@@ -105,12 +105,12 @@ if mode == "Upload File":
 elif mode == "Open Webcam":
     st.info("Akses webcam Anda diizinkan melalui browser. Pastikan untuk memberikan izin jika diminta.")
     # Use streamlit-webrtc for live webcam feed
-   webrtc_ctx = webrtc_streamer( 
-        key="smile-detector-webcam",
-        video_processor_factory=lambda: SmileVideoProcessor(model), 
-        media_stream_constraints={"video": True, "audio": False},
-        async_processing=True, 
-    )
+       webrtc_ctx = webrtc_streamer( 
+            key="smile-detector-webcam",
+            video_processor_factory=lambda: SmileVideoProcessor(model), 
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True, 
+        )
 
     if webrtc_ctx.video_receiver:
         st.write("Mendeteksi senyum secara real-time...")
