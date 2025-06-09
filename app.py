@@ -7,7 +7,8 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from smile import detect_smiles
-from streamlit_webrtc import webrtc_stream, VideoTransformerBase # Import webrtc_stream and VideoTransformerBase
+from streamlit_webrtc import webrtc_stream
+from streamlit_webrtc.webrtc_utils import VideoTransformerBase # Import VideoTransformerBase from its specific submodule
 
 # Load model
 model = tf.keras.models.load_model("model/smile-model.h5", compile=False)
