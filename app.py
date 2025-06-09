@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from smile import detect_smiles
-from streamlit_webrtc import webrtc_streamer 
+from streamlit_webrtc import webrtc_streamer
 from streamlit_webrtc.webrtc_utils import VideoTransformerBase
 
 # Load model
@@ -105,7 +105,7 @@ if mode == "Upload File":
 elif mode == "Open Webcam":
     st.info("Akses webcam Anda diizinkan melalui browser. Pastikan untuk memberikan izin jika diminta.")
     # Use streamlit-webrtc for live webcam feed
-       webrtc_ctx = webrtc_streamer( # Changed to webrtc_streamer
+    webrtc_ctx = webrtc_streamer( # Changed to webrtc_streamer
         key="smile-detector-webcam",
         video_processor_factory=lambda: SmileVideoProcessor(model), # Pass the model to the processor
         media_stream_constraints={"video": True, "audio": False}, # Only video, no audio
