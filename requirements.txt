@@ -5,3 +5,4 @@ streamlit>=1.18.0
 streamlit-webrtc>=0.45.0
 tensorflow==2.19.0
 mtcnn==1.0.0
+libgl1-mesa-glx
