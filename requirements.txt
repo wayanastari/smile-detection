@@ -4,4 +4,4 @@ tensorflow
 numpy
 opencv-python-headless
 Pillow
-streamlit-webrtc==0.41.0
+streamlit-webrtc
