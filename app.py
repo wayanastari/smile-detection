@@ -7,16 +7,16 @@ import numpy as np
 from PIL import Image
 import tensorflow as tf
 from smile import detect_smiles
-
+from streamlit_webrtc import webrtc_stream, VideoTransformerBase # Import webrtc_stream and VideoTransformerBase
 
 # Load model
 model = tf.keras.models.load_model("model/smile-model.h5", compile=False)
 
-st.title ("SMILE DETECTION") 
-os.makedirs("output", exist_ok=True)
+st.title("SMILE DETECTION")
+os.makedirs("output", exist_ok=True) # Ensure output directory exists
 
 container = st.container()
-st.caption ("Smile — it's the simplest way to brighten the world.")
+st.caption("Smile — it's the simplest way to brighten the world.")
 st.write("Selamat datang di Smile Detection, sebuah aplikasi cerdas yang bisa mengenali senyum secara otomatis dari foto, video, bahkan secara real-time lewat webcam!🥰")
 
 
@@ -34,47 +34,40 @@ if mode == "Upload File":
             file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
             uploaded_image = cv2.imdecode(file_bytes, 1)
         elif "video" in file_type:
-            tfile = tempfile.NamedTemporaryFile(delete=False)
-            tfile.write(uploaded_file.read())
-            video_file_path = tfile.name
+            # Create a temporary file for the video
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tfile:
+                tfile.write(uploaded_file.read())
+                video_file_path = tfile.name
 
-if st.button("Proses"):
-    progress_text = "Sedang memproses. Mohon tunggu..."
-    my_bar = st.progress(0, text=progress_text)
+# --- Webcam Processing Class (for streamlit-webrtc) ---
+class SmileVideoProcessor(VideoTransformerBase):
+    def __init__(self, model):
+        self.model = model
 
-    for percent_complete in range(100):
-        time.sleep(0.005)
-        my_bar.progress(percent_complete + 1, text=progress_text)
-    time.sleep(0.5)
-    my_bar.empty()
+    def transform(self, frame):
+        # Convert the WebRTC frame (RGB) to OpenCV BGR format
+        img = frame.to_ndarray(format="bgr24")
+        processed_img = detect_smiles(img.copy(), self.model)
+        # Return the processed image
+        return processed_img
+# --------------------------------------------------------
 
-    if mode == "Upload File" and uploaded_file is None:
-        st.warning("Silakan upload file terlebih dahulu.")
-    elif mode == "Open Webcam":
-        st.info("Mengakses webcam...")
-        cap = cv2.VideoCapture(0)
-        out_path = "output/webcam_output.avi"
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter(out_path, fourcc, 20.0, (640, 480))
-        stframe = st.empty()
-        stop = st.button("Stop Webcam")
+# Removed the "Proses" button for webcam, as webrtc_stream starts immediately.
+# The "Proses" button is now only for "Upload File" mode.
+if mode == "Upload File":
+    if st.button("Proses File"): # Renamed button for clarity
+        progress_text = "Sedang memproses. Mohon tunggu..."
+        my_bar = st.progress(0, text=progress_text)
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret or stop:
-                break
-            result = detect_smiles(frame.copy(), model)
-            out.write(result)
-            stframe.image(result, channels="BGR")
+        for percent_complete in range(100):
+            time.sleep(0.005)
+            my_bar.progress(percent_complete + 1, text=progress_text)
+        time.sleep(0.5)
+        my_bar.empty()
 
-        cap.release()
-        out.release()
-        st.success("Proses selesai.")
-        with open(out_path, "rb") as f:
-            st.download_button("Download Hasil Webcam", f, file_name="webcam_output.avi")
-
-    elif uploaded_file:
-        if "image" in uploaded_file.type:
+        if uploaded_file is None:
+            st.warning("Silakan upload file terlebih dahulu.")
+        elif "image" in uploaded_file.type:
             result = detect_smiles(uploaded_image.copy(), model)
             output_path = "output/labeled_image.jpg"
             cv2.imwrite(output_path, result)
@@ -89,6 +82,8 @@ if st.button("Proses"):
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = int(cap.get(cv2.CAP_PROP_FPS))
             output_path = "output/labeled_video.avi"
+            # It's good practice to ensure the directory exists before writing
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'XVID'), fps, (width, height))
 
             while cap.isOpened():
@@ -101,6 +96,25 @@ if st.button("Proses"):
 
             cap.release()
             out.release()
+            os.remove(video_file_path) # Clean up temporary video file
             st.success("Video selesai diproses.")
             with open(output_path, "rb") as f:
                 st.download_button("Download Video", f, file_name="labeled_video.avi")
+
+elif mode == "Open Webcam":
+    st.info("Akses webcam Anda diizinkan melalui browser. Pastikan untuk memberikan izin jika diminta.")
+    # Use streamlit-webrtc for live webcam feed
+    webrtc_ctx = webrtc_stream(
+        key="smile-detector-webcam",
+        video_processor_factory=lambda: SmileVideoProcessor(model), # Pass the model to the processor
+        media_stream_constraints={"video": True, "audio": False}, # Only video, no audio
+        async_processing=True, # Process frames asynchronously
+    )
+
+    if webrtc_ctx.video_receiver:
+        st.write("Mendeteksi senyum secara real-time...")
+        # You could add a stop button here if needed for the stream,
+        # but the webrtc_stream component usually has its own stop/start controls.
+        # Note: Recording the output of webrtc_stream is more complex and typically
+        # requires client-side recording or more advanced server-side handling.
+        # The current download button for webcam output won't work directly here.
